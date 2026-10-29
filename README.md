@@ -21,10 +21,11 @@ Every topic is backed by:
 
 ## 📚 Subject Portals & Solved Suites
 
-The repository currently covers **98 Master Examination Topics** across three core optional subjects:
+The repository currently covers **104 Master Examination Topics** across four core optional subjects:
 
 | Subject / Paper | Total Topics | Syllabus & Past Paper Coverage | Formats Available | Subject Master Portal |
 | :--- | :---: | :---: | :---: | :---: |
+| **Pashto (Optional)** (100 Marks) | **6 Master Units** | **2025 Paper 100% Solved** & Past Paper Archive (2008–2025) | `.md` \| `.docx` \| `.pdf` | [Pashto Master Portal](4.%20Pashto/README_Master_PMS_Pashto.md) |
 | **International Relations** (100 Marks) | **23 Topics** | **100% Coverage** (2013–2025 verbatim) | `.md` \| `.docx` \| `.pdf` | [IR Master Portal](2.%20International%20Relations/README_Master_PMS_International_Relations.md) |
 | **Geography Paper 1** (Physical & General — 100 Marks) | **20 Topics** | **100% Coverage** (2008–2025 verbatim) | `.md` \| `.docx` \| `.pdf` | [Geography Paper 1 Portal](3.%20Geography%20Paper%201%20and%20Paper%202/README_Master_PMS_Geography.md#paper-1-master-directory-physical--general-geography) |
 | **Geography Paper 2** (Human, Economic & Regional — 100 Marks) | **24 Topics** | **100% Coverage** (2008–2025 verbatim) | `.md` \| `.docx` \| `.pdf` | [Geography Paper 2 Portal](3.%20Geography%20Paper%201%20and%20Paper%202/README_Master_PMS_Geography.md#paper-2-master-directory-human-economic--regional-geography) |
