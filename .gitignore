@@ -1,0 +1,47 @@
+# ==============================================================================
+# KPPSC PMS Master Study Notes — Git Ignore Rules
+# ==============================================================================
+
+# Heavy Reference Textbooks & External Scans (>100MB)
+**/Books/
+/English/
+/Islamiat/
+/PA/
+/GK/
+/CA notes in Progress/
+/CSS MPT MCQS/
+/Tehsildar KPK/
+/PMS KPK optional/
+
+# Loose root PDF textbooks, Google Doc shortcuts & windows links
+/*.pdf
+/*.lnk
+/*.gdoc
+
+# Large Executable Tool Binaries (Download separately via Wordcraft releases)
+apps_toolkit/tools/
+
+# Python Environment & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+env/
+
+# Office / Temporary Lock Files
+~$*.docx
+*.tmp
+
+# Operating System Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,311 @@
+def generate_quiz(input_text, num_questions=8, difficulty="medium"):
+    import spacy
+    import random
+    import nltk
+    from nltk.corpus import wordnet as wn
+    from nltk.corpus import stopwords
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import re
+
+    # NLTK data
+    try:
+        nltk.data.find('corpora/wordnet')
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('wordnet')
+        nltk.download('stopwords')
+        nltk.download('omw-1.4')
+
+    # Load spaCy model
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except OSError:
+        raise SystemExit("Please install spaCy English model: python -m spacy download en_core_web_sm")
+
+    # Initialize stopwords
+    stop_words = set(stopwords.words('english'))
+
+    class MCQGenerator:
+        def __init__(self):
+            self.nlp = nlp
+            self.stop_words = stop_words
+
+        def clean_sentences(self, text):
+            """Clean and split text into sentences"""
+            doc = self.nlp(text)
+            sentences = []
+            for sent in doc.sents:
+                # Remove sentences that are too short or too long
+                if 10 <= len(sent.text.strip()) <= 200:
+                    sentences.append(sent.text.strip())
+            return sentences
+
+        def important_keywords(self, sent):
+            """Extract important keywords using multiple criteria"""
+            doc = self.nlp(sent)
+            keywords = []
+
+            # noun chunks and named entities
+            for chunk in doc.noun_chunks:
+                if (chunk.root.pos_ in ["NOUN", "PROPN"] and
+                    chunk.text.lower() not in self.stop_words and
+                    len(chunk.text) > 2):
+                    keywords.append(chunk.text)
+
+            # named entities
+            for ent in doc.ents:
+                if ent.label_ in ["PERSON", "ORG", "GPE", "PRODUCT", "EVENT"]:
+                    keywords.append(ent.text)
+
+            # important adjectives and verbs
+            for token in doc:
+                if (token.pos_ in ["ADJ", "VERB"] and
+                    token.text.lower() not in self.stop_words and
+                    len(token.text) > 3 and
+                    not token.is_punct):
+                    keywords.append(token.text)
+
+            return list(set(keywords))
+
+        def wordnet_synonyms(self, word, pos_tag=None):
+            """Get synonyms using WordNet"""
+            synonyms = set()
+
+            synsets = wn.synsets(word.lower())
+            if pos_tag:
+                pos_map = {'NOUN': 'n', 'VERB': 'v', 'ADJ': 'a', 'ADV': 'r'}
+                if pos_tag in pos_map:
+                    synsets = [s for s in synsets if s.pos() == pos_map[pos_tag]]
+
+            for synset in synsets:
+                for lemma in synset.lemmas():
+                    synonym = lemma.name().replace('_', ' ')
+                    if synonym.lower() != word.lower():
+                        synonyms.add(synonym)
+
+            return list(synonyms)
+
+        def wordnet_antonyms(self, word):
+            """Get antonyms using WordNet"""
+            antonyms = set()
+            for synset in wn.synsets(word.lower()):
+                for lemma in synset.lemmas():
+                    if lemma.antonyms():
+                        for antonym in lemma.antonyms():
+                            antonym_word = antonym.name().replace('_', ' ')
+                            antonyms.add(antonym_word)
+            return list(antonyms)
+
+        def wordnet_hyponyms_hypernyms(self, word):
+            """Get hyponyms and hypernyms using WordNet"""
+            related_words = set()
+            for synset in wn.synsets(word.lower()):
+                for hyponym in synset.hyponyms():
+                    for lemma in hyponym.lemmas():
+                        related_words.add(lemma.name().replace('_', ' '))
+                for hypernym in synset.hypernyms():
+                    for lemma in hypernym.lemmas():
+                        related_words.add(lemma.name().replace('_', ' '))
+            return list(related_words)
+
+        def enhanced_distractors(self, correct_word, all_sentences, context_sentence, top_n=3):
+            """Generate distractors using multiple methods"""
+            distractors = set()
+
+            # Method 1: WordNet synonyms
+            synonyms = self.wordnet_synonyms(correct_word)
+            distractors.update(synonyms[:2])
+
+            # Method 2: WordNet antonyms
+            antonyms = self.wordnet_antonyms(correct_word)
+            distractors.update(antonyms[:1])
+
+            # Method 3: WordNet hyponyms/hypernyms
+            related_words = self.wordnet_hyponyms_hypernyms(correct_word)
+            distractors.update(related_words[:2])
+
+            # Method 4: TF-IDF based similarity (original method)
+            corpus = all_sentences + [correct_word]
+            try:
+                vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
+                tfidf_matrix = vectorizer.fit_transform(corpus)
+                cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
+                similar_sentences = [all_sentences[i] for i in cosine_sim.argsort()[::-1][:5]]
+
+                for sent in similar_sentences:
+                    # FIX: use the correct method name
+                    keywords = self.important_keywords(sent)
+                    for word in keywords:
+                        if (word.lower() != correct_word.lower() and
+                            word not in distractors and
+                            len(word) > 2):
+                            distractors.add(word)
+                            if len(distractors) >= top_n * 2:
+                                break
+                    if len(distractors) >= top_n * 2:
+                        break
+            except Exception:
+                pass
+
+            # Method 5: Context-based distractors (same POS from context)
+            doc = self.nlp(context_sentence)
+            target_pos = None
+            for token in doc:
+                if correct_word.lower() in token.text.lower():
+                    target_pos = token.pos_
+                    break
+
+            if target_pos:
+                for sent in all_sentences:
+                    sent_doc = self.nlp(sent)
+                    for token in sent_doc:
+                        if (token.pos_ == target_pos and
+                            token.text.lower() != correct_word.lower() and
+                            token.text not in distractors and
+                            len(token.text) > 2):
+                            distractors.add(token.text)
+
+            # Filter and clean distractors
+            filtered_distractors = []
+            for dist in distractors:
+                if (dist.lower() != correct_word.lower() and
+                    len(dist) > 1 and
+                    dist not in filtered_distractors and
+                    not dist.lower() in self.stop_words):
+                    filtered_distractors.append(dist)
+
+            return filtered_distractors[:top_n]
+
+        def validate_question(self, question, answer, options):
+            """Validate if the question is good quality"""
+            if "_" not in question:
+                return False
+            if answer not in options:
+                return False
+            if len(options) < 2:
+                return False
+            unique_options = set(opt.lower() for opt in options)
+            if len(unique_options) < len(options) * 0.8:
+                return False
+            return True
+
+        def generate_mcqs(self, text, num_questions=5, difficulty='medium'):
+            """Generate MCQs with enhanced features"""
+            sentences = self.clean_sentences(text)
+            questions = []
+            used_keywords = set()
+
+            min_keyword_length = {'easy': 3, 'medium': 4, 'hard': 5}[difficulty]
+
+            for sent in sentences:
+                if len(questions) >= num_questions:
+                    break
+
+                keywords = self.important_keywords(sent)
+
+                filtered_keywords = [
+                    kw for kw in keywords
+                    if (len(kw) >= min_keyword_length and
+                        kw.lower() not in used_keywords and
+                        kw.lower() not in self.stop_words)
+                ]
+
+                if not filtered_keywords:
+                    continue
+
+                keyword = None
+                doc = self.nlp(sent)
+                for token in doc:
+                    if (token.text in filtered_keywords and
+                        token.pos_ in ["NOUN", "PROPN"]):
+                        keyword = token.text
+                        break
+
+                if not keyword:
+                    keyword = random.choice(filtered_keywords)
+
+                # Create question
+                question = sent.replace(keyword, "_")
+
+                # Generate distractors
+                distractors = self.enhanced_distractors(keyword, sentences, sent)
+
+                if len(distractors) < 2:
+                    continue
+
+                options = distractors[:3] + [keyword]
+                random.shuffle(options)
+
+                if self.validate_question(question, keyword, options):
+                    questions.append({
+                        'question': question,
+                        'answer': keyword,
+                        'options': options,
+                        'difficulty': difficulty,
+                        'context': sent
+                    })
+                    used_keywords.add(keyword.lower())
+
+            return questions
+
+        def run_interactive_quiz(self, questions):
+            """Run interactive quiz with scoring"""
+            if not questions:
+                print("No questions generated. Please check your input text.")
+                return
+
+            score = 0
+            total = len(questions)
+
+            print(f"MCQ QUIZ - {total} Questions")
+
+            for i, q in enumerate(questions, 1):
+                print(f"Question {i}/{total}")
+                print(f"Difficulty: {q['difficulty'].upper()}")
+                print(f"\n{q['question']}")
+                print("\nOptions:")
+
+                options_map = {}
+                for j, opt in enumerate(q['options']):
+                    letter = chr(97 + j)  # a, b, c, d
+                    options_map[letter] = opt
+                    print(f"  {letter}. {opt}")
+
+                while True:
+                    try:
+                        answer = input(f"\nEnter your answer (a-{chr(96 + len(q['options']))}): ").lower().strip()
+                        if answer in options_map:
+                            break
+                        else:
+                            print("Invalid option. Please try again.")
+                    except KeyboardInterrupt:
+                        print("\nQuiz interrupted.")
+                        return
+
+                if options_map[answer] == q['answer']:
+                    print("✅ Correct!")
+                    score += 1
+                else:
+                    print("❌ Wrong!")
+
+                print(f"✔ Correct Answer: {q['answer']}")
+                if 'context' in q:
+                    print(f"📖 Context: {q['context']}")
+
+            print(f"\n{'='*50}")
+            print(f"QUIZ COMPLETED!")
+            print(f"Final Score: {score}/{total} ({score/total*100:.1f}%)")
+            print(f"{'='*50}")
+
+            if score/total >= 0.8:
+                print("🎉 Excellent work!")
+            elif score/total >= 0.6:
+                print("👍 Good job!")
+            else:
+                print("📚 Keep studying!")
+
+    # ---- run the generation part ----
+    mcq_gen = MCQGenerator()
+    questions = mcq_gen.generate_mcqs(input_text, num_questions=num_questions, difficulty=difficulty)
+    return {"questions": questions, "runner": mcq_gen.run_interactive_quiz}
