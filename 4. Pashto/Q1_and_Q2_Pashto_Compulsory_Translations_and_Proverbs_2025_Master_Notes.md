@@ -11,6 +11,18 @@
 
 ---
 
+### 🎯 EXAM QUESTIONS LINKED (د تېرو کلونو پوښتنې په پوره متن سره)
+
+> • **2025 Q.1 (الف)**: "A Clean and Green Pakistan is not merely an aesthetic ambition-it is the lifeline of our nation's future. The land that once echoed with the fragrance of orange blossoms and jasmine now struggles under the weight of urban smog and deforestation. As the adage goes, “We do not inherit the earth from our ancestors; we borrow it from our children.” If we continue to treat our soil as a dumping ground and our rivers as sewers, we will sow the wind and reap the whirlwind. The road to a verdant Pakistan lies in grassroots action-community gardens in barren plots, rooftop plantations in crowded cities, and eco-friendly alternatives replacing harmful plastics. When citizens become custodians of their environment, cleanliness transforms from a campaign into a culture, and Pakistan can blossom into the emerald heart of South Asia once more." (14 Marks)
+>
+> • **2025 Q.1 (ب)**: "Translate any THREE of the following proverbs into authentic Pashto: 1. When the head is alive, caps are many. 2. By the time truth is known, lies will have destroyed the village. 3. If you have money, there is no need to make request. 4. When you reach old age you become pious. 5. As the donkey, so the load. 6. Some say, what shall I do with it, others say where shall I hide it." (6 Marks)
+>
+> • **2025 Q.2 (الف)**: "خداے پاک چې په یو لوشي قوم داسې لازم الر او بیاتي په کښې د عبادت فخر ورکړه، کرک او هم دستې د ګلونو ورمۍ، د خلوص خوند، ښۀ اخلاق، صبر او قربانۍ ثمر په کښې شته کول او بیاتي خپل لوړے حکمت سره د بښنې او درګزر په یو انساني صورت کښې تماره کړه او د مور په شکل کښې ئې دا دنیا مخ ته راواستوله، هر ساربان وائي؛ مور آسمان نه راښکته شوے دعا ده، د انسان ژوند د تولولو لوئے، غور، ګران، په زړۀ پورې او ښکلې لفظ ،مور، دے." (20 Marks)
+>
+> • **2022 Q.2**: "دغه لاندینی عبارت د انګرېزي نه پښتو کښې ترجمه کړئ او په متلونو (Proverbs) کښې درې د انګرېزي نه پښتو ته واړوئ۔" (20 Marks)
+
+---
+
 ## 🎯 د ازموینې کلیدي نکتې (Executive Exam Takeaways)
 
 1. **د ژباړې فصاحت او معنوي انډول (Equivalence of Meaning)**: په رقابتي ازموینو (KPPSC PMS) کې لفظي (Word-for-Word) ژباړه تر ټولو ستره تېروتنه ګڼل کېږي؛ ژباړن باید د انګلیسي محاورې او استعارې روح د پښتو په فصیح، روان او سوچه کلتوري ادبي اسلوب کې وساتي.

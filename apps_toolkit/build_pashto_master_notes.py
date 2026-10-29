@@ -41,7 +41,6 @@ def create_docx(md_path, docx_path, title):
 
     doc = Document()
     
-    # 0.8 inch margins
     sections = doc.sections
     for section in sections:
         section.top_margin = Inches(0.8)
@@ -51,14 +50,16 @@ def create_docx(md_path, docx_path, title):
 
     in_code = False
     code_lines = []
+    in_table = False
+    table_rows = []
     
     for line in lines:
         raw_line = line.rstrip("\r\n")
         stripped = raw_line.strip()
         
+        # Handle code blocks
         if stripped.startswith("```"):
             if in_code:
-                # render code block
                 tbl = doc.add_table(rows=1, cols=1)
                 tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
                 cell = tbl.cell(0, 0)
@@ -84,6 +85,57 @@ def create_docx(md_path, docx_path, title):
             code_lines.append(raw_line)
             continue
             
+        # Handle table rows
+        if stripped.startswith("|") and stripped.endswith("|"):
+            if not in_table:
+                in_table = True
+                table_rows = []
+            if ":---" in stripped or "---:" in stripped or "| --- |" in stripped:
+                continue
+            cols = [c.strip() for c in stripped.split("|")[1:-1]]
+            table_rows.append(cols)
+            continue
+        else:
+            if in_table:
+                num_rows = len(table_rows)
+                num_cols = len(table_rows[0]) if num_rows > 0 else 0
+                if num_rows > 0 and num_cols > 0:
+                    tbl = doc.add_table(rows=num_rows, cols=num_cols)
+                    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+                    tbl.autofit = False
+                    for r_idx, row in enumerate(table_rows):
+                        for c_idx, val in enumerate(row):
+                            if c_idx < num_cols:
+                                cell = tbl.cell(r_idx, c_idx)
+                                set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
+                                if r_idx == 0:
+                                    set_cell_background(cell, "0E2B50")
+                                elif r_idx % 2 == 1:
+                                    set_cell_background(cell, "F8FAFC")
+                                else:
+                                    set_cell_background(cell, "FFFFFF")
+                                    
+                                p = cell.paragraphs[0]
+                                is_ar = any('\u0600' <= char <= '\u06FF' for char in val)
+                                if is_ar:
+                                    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                                    set_paragraph_rtl(p)
+                                else:
+                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    
+                                text_clean = val.replace("<br>", "\n").replace("**", "")
+                                run = p.add_run(text_clean)
+                                run.font.name = "Bahij Nazanin" if is_ar else "Calibri"
+                                run.font.size = Pt(9.5)
+                                if r_idx == 0:
+                                    run.font.bold = True
+                                    run.font.color.rgb = RGBColor(255, 255, 255)
+                                else:
+                                    run.font.color.rgb = RGBColor(30, 41, 59)
+                    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+                in_table = False
+                table_rows = []
+                
         if not stripped:
             continue
             
@@ -110,12 +162,16 @@ def create_docx(md_path, docx_path, title):
             run.font.color.rgb = RGBColor(27, 73, 101)
         elif stripped.startswith("### "):
             p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            set_paragraph_rtl(p)
+            is_ar = any('\u0600' <= char <= '\u06FF' for char in stripped)
+            if is_ar:
+                p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                set_paragraph_rtl(p)
+            else:
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.space_before = Pt(8)
             p.paragraph_format.space_after = Pt(2)
             run = p.add_run(stripped[4:])
-            run.font.name = "Bahij Nazanin"
+            run.font.name = "Bahij Nazanin" if is_ar else "Calibri"
             run.font.size = Pt(12)
             run.font.bold = True
             run.font.color.rgb = RGBColor(14, 43, 80)
@@ -127,24 +183,24 @@ def create_docx(md_path, docx_path, title):
             set_cell_background(cell, "F0F4F8")
             set_cell_margins(cell, top=100, bottom=100, left=160, right=160)
             p = cell.paragraphs[0]
-            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            set_paragraph_rtl(p)
+            is_ar = any('\u0600' <= char <= '\u06FF' for char in stripped)
+            if is_ar:
+                p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                set_paragraph_rtl(p)
+            else:
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.space_before = Pt(2)
             p.paragraph_format.space_after = Pt(2)
             run = p.add_run(stripped[2:])
-            run.font.name = "Bahij Zar"
+            run.font.name = "Bahij Zar" if is_ar else "Georgia"
             run.font.size = Pt(10.5)
             run.font.italic = True
             run.font.color.rgb = RGBColor(15, 23, 42)
             doc.add_paragraph().paragraph_format.space_after = Pt(4)
-        elif stripped.startswith("|"):
-            # skip raw markdown table lines for simplicity or let simple text render
-            continue
         elif stripped.startswith("---"):
             continue
         else:
             p = doc.add_paragraph()
-            # check if mostly pashto / arabic
             is_arabic = any('\u0600' <= char <= '\u06FF' for char in stripped)
             if is_arabic:
                 p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -156,7 +212,6 @@ def create_docx(md_path, docx_path, title):
             p.paragraph_format.space_before = Pt(1)
             p.paragraph_format.space_after = Pt(4)
             
-            # handle bold **
             parts = stripped.split("**")
             for idx, part in enumerate(parts):
                 if not part: continue
@@ -176,7 +231,6 @@ def render_md_to_pdf(md_path, pdf_path, title):
     with open(md_path, "r", encoding="utf-8") as f:
         md_text = f.read()
 
-    # convert basic markdown to html
     html_body = ""
     lines = md_text.split("\n")
     in_code = False
@@ -199,7 +253,6 @@ def render_md_to_pdf(md_path, pdf_path, title):
             continue
             
         if in_code:
-            # escape html
             esc = raw_l.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             code_block.append(esc)
             continue
@@ -215,7 +268,6 @@ def render_md_to_pdf(md_path, pdf_path, title):
             continue
         else:
             if in_table:
-                # render table
                 t_html = "<table style='width:100%; border-collapse:collapse; margin:12px 0; font-size:10pt; direction:rtl;'>"
                 for r_idx, row in enumerate(table_rows):
                     t_html += "<tr>"
@@ -239,9 +291,16 @@ def render_md_to_pdf(md_path, pdf_path, title):
         elif s.startswith("## "):
             html_body += f"<h2 style='text-align:right; direction:rtl; color:#1B4965; font-family:\"Bahij Titr\", \"Segoe UI\", Tahoma; font-size:14pt; margin:12px 0 4px 0;'>{s[3:]}</h2>"
         elif s.startswith("### "):
-            html_body += f"<h3 style='text-align:right; direction:rtl; color:#0E2B50; font-family:\"Bahij Nazanin\", \"Segoe UI\", Tahoma; font-size:12pt; margin:10px 0 2px 0; border-bottom:1px solid #e2e8f0; padding-bottom:2px;'>{s[4:]}</h3>"
+            is_ar = any('\u0600' <= char <= '\u06FF' for char in s)
+            direction = "rtl" if is_ar else "ltr"
+            align = "right" if is_ar else "left"
+            html_body += f"<h3 style='text-align:{align}; direction:{direction}; color:#0E2B50; font-family:\"Bahij Nazanin\", \"Segoe UI\", Tahoma; font-size:12pt; margin:10px 0 2px 0; border-bottom:1px solid #e2e8f0; padding-bottom:2px;'>{s[4:]}</h3>"
         elif s.startswith("> "):
-            html_body += f"<blockquote style='direction:rtl; text-align:right; background:#F0F4F8; border-right:4px solid #1B4965; border-left:none; padding:8px 14px; margin:10px 0; font-family:\"Bahij Zar\", Georgia, serif; font-size:10.5pt; color:#1e293b;'>{s[2:]}</blockquote>"
+            is_ar = any('\u0600' <= char <= '\u06FF' for char in s)
+            direction = "rtl" if is_ar else "ltr"
+            align = "right" if is_ar else "left"
+            border_side = "border-right:4px solid #1B4965; border-left:none;" if is_ar else "border-left:4px solid #1B4965; border-right:none;"
+            html_body += f"<blockquote style='direction:{direction}; text-align:{align}; background:#F0F4F8; {border_side} padding:8px 14px; margin:10px 0; font-family:\"Bahij Zar\", Georgia, serif; font-size:10.5pt; color:#1e293b;'>{s[2:]}</blockquote>"
         elif s.startswith("---"):
             html_body += "<hr style='border:0; border-top:1px solid #cbd5e1; margin:14px 0;'>"
         else:
@@ -250,7 +309,6 @@ def render_md_to_pdf(md_path, pdf_path, title):
             align = "right" if is_arabic else "justify"
             font_family = "\"Bahij Nazanin\", \"Segoe UI\", Tahoma, sans-serif" if is_arabic else "Calibri, Arial, sans-serif"
             
-            # format bold
             parts = s.split("**")
             formatted = ""
             for idx, part in enumerate(parts):
